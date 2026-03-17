@@ -1,0 +1,261 @@
+// src/App.tsx
+import { Routes, Route, Navigate } from "react-router-dom";
+import ProtectedRoute from "./components/ProtectedRoute";
+import SignIn from "./pages/AuthPages/SignIn";
+import NotFound from "./pages/OtherPage/NotFound";
+import UserProfiles from "./pages/UserProfiles";
+import Videos from "./pages/UiElements/Videos";
+import Images from "./pages/UiElements/Images";
+import Alerts from "./pages/UiElements/Alerts";
+import Badges from "./pages/UiElements/Badges";
+import Avatars from "./pages/UiElements/Avatars";
+import Buttons from "./pages/UiElements/Buttons";
+import LineChart from "./pages/Charts/LineChart";
+import BarChart from "./pages/Charts/BarChart";
+import Calendar from "./pages/Calendar";
+import BasicTables from "./pages/Tables/BasicTables";
+import FormElements from "./pages/Forms/FormElements";
+import Blank from "./pages/Blank";
+import AppLayout from "./layout/AppLayout";
+import { ScrollToTop } from "./components/common/ScrollToTop";
+import Home from "./pages/Dashboard/Home";
+import OdontogramaPage from "./pages/Odontogram/OdontogramaPage";
+import { useNetworkStatus } from "./hooks/useNetworkStatus";
+import UsersPage from "./pages/Segurity/UsersPage";
+import { useAuth } from "./hooks/auth/useAuth";
+import PatientsPage from "./pages/Patients/PatientsPage";
+import ForgotPasswordForm from "./pages/AuthPages/ForgotPasswordForm";
+import ResetPassword from "./pages/AuthPages/ResetPassword";
+import { NotificationProvider } from "./context/notifications/NotificationContext";
+import { NotificationContainer } from "./context/notifications/NotificationContainer";
+import OdontogramaHistoryPage from "./pages/Odontogram/OdontogramaHistoryPage";
+import ConstantesVitalesPage from "./pages/VitalSigns/ConstantesVitalesPage";
+import StomatognathicExamPage from "./pages/StomatognathicExam/StomatognathicExamPage";
+import { PacienteProvider } from "./context/PacienteContext";
+import AppointmentsPage from "./pages/Appointments/AppointmentsPage";
+import IndicadoresSaludBucalPage from "./pages/Odontogram/IndicadoresSaludBucalPage";
+import TreatmentPlanPage from "./pages/TreatmentPlan/TreatmentPlanPage";
+import ClinicalRecordsPage from "./pages/ClinicalRecords/ClinicalRecordsPage";
+import ParametersPage from "./pages/Parameters/parametersPage";
+
+// ============================================================================
+// RUTAS PÚBLICAS
+// ============================================================================
+function PublicRoute({ children }: { children: React.ReactNode }) {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Cargando...</div>
+      </div>
+    );
+  }
+
+  if (user) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+// ============================================================================
+// APP
+// ============================================================================
+function App() {
+  useNetworkStatus();
+
+  return (
+    <NotificationProvider>
+      <ScrollToTop />
+
+      <Routes>
+        {/* =============== RUTAS PÚBLICAS =============== */}
+        <Route
+          path="/sign-in"
+          element={
+            <PublicRoute>
+              <SignIn />
+            </PublicRoute>
+          }
+        />
+
+        <Route
+          path="/forgot-password"
+          element={
+            <PublicRoute>
+              <ForgotPasswordForm />
+            </PublicRoute>
+          }
+        />
+
+        <Route
+          path="/reset-password/:uid/:token"
+          element={
+            <PublicRoute>
+              <ResetPassword />
+            </PublicRoute>
+          }
+        />
+
+        {/* =============== RUTAS PROTEGIDAS =============== */}
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppLayout />}>
+            {/* Dashboard */}
+            <Route path="/dashboard" element={<Home />} />
+
+            <Route
+              path="/pacientes"
+              element={
+                <PacienteProvider>
+                  <PatientsPage />
+                </PacienteProvider>
+              }
+            />
+            <Route
+              path="/pacientes/:id/editar"
+              element={
+                <PacienteProvider>
+                  <PatientsPage />
+                </PacienteProvider>
+              }
+            />
+            <Route
+              path="/odontograma"
+              element={
+                <PacienteProvider>
+                  <OdontogramaPage />
+                </PacienteProvider>
+              }
+            />
+            <Route
+              path="/odontograma-timeline"
+              element={
+                <PacienteProvider>
+                  <OdontogramaHistoryPage />
+                </PacienteProvider>
+              }
+            />
+
+            <Route
+              path="/indicadores-salud-bucal"
+              element={
+                <PacienteProvider>
+                  <IndicadoresSaludBucalPage />
+                </PacienteProvider>
+              }
+            />
+
+            <Route 
+                path="/historia-clinica" 
+
+                element={
+                  <PacienteProvider>
+                    <ClinicalRecordsPage />
+                  </PacienteProvider>
+              }  
+
+              />
+
+            {/* Rutas de antecedentes */}
+            <Route
+              path="/pacientes/examen-estomatognatico"
+              element={
+                <PacienteProvider>
+                  <StomatognathicExamPage />
+                </PacienteProvider>
+              }
+            />
+
+         
+
+            {/* Rutas de antecedentes */}
+            {/* <Route
+              path="/pacientes/antecedentes-personales"
+              element={<PersonalBackgroundPage />}
+            />
+            <Route
+              path="/pacientes/antecedentes-familiares"
+              element={<FamilyBackgroundPage />}
+            /> */}
+
+            {/* <Route path="/pacientes/constantes-vitales" element={<ConstantesVitalesPage />} /> */}
+
+            {/* Usuarios */}
+            <Route path="/usuarios" element={<UsersPage />} />
+            <Route path="/usuarios/:id/editar" element={<UsersPage />} />
+
+            <Route path="/pacientes" element={<PatientsPage />} />
+            <Route path="/pacientes/:id/editar" element={<PatientsPage />} />
+            <Route path="/pacientes/constantes-vitales" element={
+              <PacienteProvider>
+                <ConstantesVitalesPage />
+              </PacienteProvider>
+              
+
+              } />
+            <Route path="/pacientes/examen-estomatognatico" element={
+              <PacienteProvider>
+
+                <StomatognathicExamPage/>
+              </PacienteProvider>
+              
+
+              } />
+
+
+            <Route path="/citas" element={<AppointmentsPage />} />
+            <Route path="/config-horarios" element={<ParametersPage/>} />
+
+            <Route path="/odontogram" element={<OdontogramaPage />} />
+            <Route path="/pacientes" element={<PatientsPage />} />
+            <Route path="/odontograma" element={<OdontogramaPage />} />
+            <Route path="/odontograma-timeline" element={<OdontogramaHistoryPage />} />
+
+            <Route path="plan-tratamiento" element={<PacienteProvider>
+        <TreatmentPlanPage />
+      </PacienteProvider>} />
+            
+
+            <Route path="/segurity/users" element={<UsersPage />} />
+
+            {/* Perfil */}
+            <Route path="/profile" element={<UserProfiles />} />
+
+            {/* Charts */}
+            <Route path="/charts/bar-chart" element={<BarChart />} />
+            <Route path="/charts/line-chart" element={<LineChart />} />
+
+            {/* Forms y Tables */}
+            <Route path="/forms/form-elements" element={<FormElements />} />
+            <Route path="/tables/basic-tables" element={<BasicTables />} />
+
+            {/* Utilidades */}
+            <Route path="/calendar" element={<Calendar />} />
+
+            {/* UI Elements */}
+            <Route path="/ui-elements/alerts" element={<Alerts />} />
+            <Route path="/ui-elements/buttons" element={<Buttons />} />
+            <Route path="/ui-elements/avatars" element={<Avatars />} />
+            <Route path="/ui-elements/badges" element={<Badges />} />
+            <Route path="/ui-elements/images" element={<Images />} />
+            <Route path="/ui-elements/videos" element={<Videos />} />
+
+            {/* Blank */}
+            <Route path="/blank" element={<Blank />} />
+          </Route>
+        </Route>
+
+        {/* =============== RAÍZ =============== */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+        {/* =============== 404 =============== */}
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+
+      <NotificationContainer />
+    </NotificationProvider>
+  );
+}
+
+export default App;

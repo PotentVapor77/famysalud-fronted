@@ -1,0 +1,177 @@
+// src/components/odontograma/hooks/useRootInteractions.ts
+import { useEffect, useMemo, useRef } from "react";
+import type { GroupedSurface } from "../../core/utils/groupDentalSurfaces";
+
+const HOVER_COLOR_ROOT = "#facc15";
+
+interface UseRootInteractionsProps {
+  rootSvgLoaded: boolean;
+  selectedTooth: string | null;
+  rootInfo: { type: string; roots: string[] };
+  selectedSurfaces: string[];
+  groupedSurfaces?: GroupedSurface[];
+  onSurfaceSelect: (surfaces: string[]) => void;
+  previewColorHex: string | null;
+  getPermanentColorForSurface: (toothId: string | null, surfaceId: string) => string | null;
+  UI_SELECTION_COLOR: string;
+  DEFAULT_COLOR: string;
+}
+
+export const useRootInteractions = ({
+  rootSvgLoaded,
+  selectedTooth,
+  rootInfo,
+  selectedSurfaces,
+  groupedSurfaces,
+  onSurfaceSelect,
+  previewColorHex,
+  getPermanentColorForSurface,
+  UI_SELECTION_COLOR,
+  DEFAULT_COLOR
+}: UseRootInteractionsProps) => {
+
+  const selectedSurfacesRef = useRef(selectedSurfaces);
+  const cleanupFnsRef = useRef<(() => void)[]>([]);
+
+  useEffect(() => {
+    selectedSurfacesRef.current = selectedSurfaces;
+  }, [selectedSurfaces]);
+
+  // ============================================================================
+  // Detección de "Raíz completa"
+  // ============================================================================
+  const hasCompleteRoot = useMemo(() => {
+    return groupedSurfaces?.some(
+      (gs): gs is Extract<GroupedSurface, { type: 'group'; isRoot: true }> =>
+        gs.type === 'group' && gs.isRoot && gs.label === 'Raíz completa'
+    ) || false;
+  }, [groupedSurfaces]);
+
+  console.log('[useRootInteractions] hasCompleteRoot:', hasCompleteRoot, 'selectedSurfaces:', selectedSurfaces);
+
+  // ------------------ Interacciones ------------------
+  useEffect(() => {
+    cleanupFnsRef.current.forEach(fn => fn());
+    cleanupFnsRef.current = [];
+
+    if (!rootSvgLoaded || !selectedTooth) return;
+
+    const setup = () => {
+      const rootSvg = document.getElementById("raiz-svg") as HTMLObjectElement;
+      if (!rootSvg?.contentDocument) {
+        requestAnimationFrame(setup);
+        return;
+      }
+
+      const rootDoc = rootSvg.contentDocument;
+
+      rootInfo.roots.forEach(rootId => {
+        const surfaceId = `raiz:${rootId}`;
+        const groupElement = rootDoc.getElementById(rootId);
+
+        if (!groupElement) return;
+
+        const elements = groupElement.querySelectorAll("path, rect, circle, polygon");
+
+        elements.forEach(el => {
+          const element = el as HTMLElement;
+
+          element.style.pointerEvents = "all";
+          element.style.cursor = hasCompleteRoot ? "pointer" : "pointer";
+          element.style.transition = "fill 0.3s ease";
+
+          if (!element.dataset.originalFill) {
+            element.dataset.originalFill = window.getComputedStyle(element).fill || DEFAULT_COLOR;
+          }
+
+          const handleMouseEnter = () => {
+            const permanentColor = getPermanentColorForSurface(selectedTooth, surfaceId);
+            if (!selectedSurfacesRef.current.includes(surfaceId) && !permanentColor) {
+              element.style.fill = HOVER_COLOR_ROOT;
+            }
+          };
+
+          const handleMouseLeave = () => {
+  const permanentColor = getPermanentColorForSurface(selectedTooth, surfaceId);
+  const isSelected = selectedSurfacesRef.current.includes(surfaceId);
+
+  if (isSelected) {
+    element.style.fill = UI_SELECTION_COLOR;
+  } else if (permanentColor) {
+    element.style.fill = permanentColor;
+  } else {
+    element.style.fill = element.dataset.originalFill || DEFAULT_COLOR;
+  }
+};
+
+          const handleClick = () => {
+            let newSelection: string[];
+
+            if (selectedSurfacesRef.current.includes(surfaceId)) {
+              newSelection = selectedSurfacesRef.current.filter(s => s !== surfaceId);
+            } else {
+              newSelection = [...selectedSurfacesRef.current, surfaceId];
+            }
+
+            onSurfaceSelect(newSelection);
+          };
+
+          element.addEventListener("mouseenter", handleMouseEnter);
+          element.addEventListener("mouseleave", handleMouseLeave);
+          element.addEventListener("click", handleClick);
+
+          cleanupFnsRef.current.push(() => {
+            element.removeEventListener("mouseenter", handleMouseEnter);
+            element.removeEventListener("mouseleave", handleMouseLeave);
+            element.removeEventListener("click", handleClick);
+          });
+        });
+      });
+    };
+
+    setup();
+
+    return () => {
+      cleanupFnsRef.current.forEach(fn => fn());
+      cleanupFnsRef.current = [];
+    };
+  }, [rootSvgLoaded, selectedTooth, rootInfo.roots.join(','), onSurfaceSelect, getPermanentColorForSurface, DEFAULT_COLOR, hasCompleteRoot]);
+
+  // ------------------ Sincronización SVG ------------------
+  useEffect(() => {
+    if (!rootSvgLoaded || !selectedTooth) return;
+
+    const rootSvg = document.getElementById("raiz-svg") as HTMLObjectElement;
+    if (!rootSvg?.contentDocument) return;
+
+    const rootDoc = rootSvg.contentDocument;
+
+    rootInfo.roots.forEach(rootId => {
+      const surfaceId = `raiz:${rootId}`;
+      const groupElement = rootDoc.getElementById(rootId);
+      if (!groupElement) return;
+
+      const elements = groupElement.querySelectorAll("path, rect, circle, polygon");
+      const permanentColor = getPermanentColorForSurface(selectedTooth, surfaceId);
+      const isSelected = selectedSurfaces.includes(surfaceId);
+
+      elements.forEach(el => {
+        const element = el as HTMLElement;
+        let finalColor = element.dataset.originalFill || DEFAULT_COLOR;
+
+        if (isSelected) {
+          finalColor = UI_SELECTION_COLOR;
+        }
+        else if (previewColorHex && isSelected && !permanentColor) {
+          finalColor = previewColorHex;
+        }
+        else if (permanentColor) {
+          finalColor = permanentColor;
+        }
+
+        element.style.fill = finalColor;
+      });
+    });
+  }, [selectedSurfaces, rootSvgLoaded, selectedTooth, previewColorHex, getPermanentColorForSurface, UI_SELECTION_COLOR, DEFAULT_COLOR]);
+
+};
